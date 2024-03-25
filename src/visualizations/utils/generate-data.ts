@@ -11,6 +11,7 @@ function generateEntry({
   return {
     label: faker.word.noun(),
     value: faker.number.int({ min, max }),
+    goal: faker.number.int({ min, max }),
   };
 }
 

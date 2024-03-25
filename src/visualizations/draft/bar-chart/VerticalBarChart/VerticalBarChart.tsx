@@ -35,7 +35,7 @@ export function BarChart<Datum>({
         height: "100%",
         border: "1px dashed lightgray",
         borderRadius: 5,
-        fontFamily: '"Nunito Sans","Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif',
+        fontFamily: '"Nunito Sans"',
       }}
     ></svg>
   );

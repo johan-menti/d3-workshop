@@ -3,11 +3,11 @@ import { Chart, StoryDatum } from "./types";
 import { colorPalette } from "./utils/color-palettes";
 
 export const INITIAL_DATA = [
-  { label: "ghost", value: 16 },
-  { label: "jalapeño", value: 41 },
-  { label: "habanero", value: 24 },
-  { label: "bell", value: 50 },
-  { label: "scotch", value: 20 },
+  { label: "ghost", value: 16, goal: 30 },
+  { label: "jalapeño", value: 41, goal: 22 },
+  { label: "habanero", value: 24, goal: 19 },
+  { label: "bell", value: 50, goal: 50 },
+  { label: "scotch", value: 20, goal: 45 },
 ];
 
 export const DATA_DEFAULTS = {

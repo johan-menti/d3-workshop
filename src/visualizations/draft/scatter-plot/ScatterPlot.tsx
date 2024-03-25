@@ -3,22 +3,20 @@ import { Chart } from "../../types";
 import { CHART_DEFAULTS } from "./constants";
 import { useDimensions } from "../../utils/use-dimensions";
 
-export interface PieChartProps<Datum> extends Chart<Datum> {
-  innerRadius?: number;
-  padAngle?: number;
+export interface ScatterPlotChartProps<Datum> extends Chart<Datum> {
   data: Array<Datum>;
 }
 
-export function PieChart<Datum>({
+export function ScatterPlotChart<Datum>({
   marginTop = CHART_DEFAULTS.marginTop,
   marginRight = CHART_DEFAULTS.marginRight,
   marginBottom = CHART_DEFAULTS.marginBottom,
   marginLeft = CHART_DEFAULTS.marginLeft,
+  maxValue = CHART_DEFAULTS.maxValue,
+  transitionDuration = CHART_DEFAULTS.transitionDuration,
   colors = [],
   data = [],
-  innerRadius = CHART_DEFAULTS.innerRadius,
-  padAngle = CHART_DEFAULTS.padAngle,
-}: PieChartProps<Datum>) {
+}: ScatterPlotChartProps<Datum>) {
   const ref = useRef<SVGSVGElement>(null);
   const { width: rootWidth, height: rootHeight } = useDimensions(ref);
 
