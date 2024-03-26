@@ -33,8 +33,12 @@ export function DensityPlot<Datum>({
   const boundedWidth = rootWidth - marginRight - marginLeft;
   const boundedHeight = rootHeight - marginTop - marginBottom;
 
+  const LABEL_PADDING = 30;
+
   // Scales
-  const xScale = scaleLinear().domain([0, maxValue]).range([0, boundedWidth]);
+  const xScale = scaleLinear()
+    .domain([0, maxValue])
+    .range([0 + LABEL_PADDING, boundedWidth - LABEL_PADDING]);
 
   const [rangeStart, rangeEnd] = xScale.range();
 
@@ -60,10 +64,10 @@ export function DensityPlot<Datum>({
     to: { d: densityLine(formattedData) || undefined },
     config: {
       duration: transitionDuration,
-      easing: easings.easeOutBounce,
+      easing: easings.easeOutBack,
     },
   });
-  const LABEL_PADDING = 30;
+
   return (
     <svg
       ref={ref}
@@ -83,34 +87,22 @@ export function DensityPlot<Datum>({
         transform={`translate(${marginLeft}, ${marginTop})`}
         alignmentBaseline="middle"
       >
-        {/* Mock y axis */}
-        <line
-          stroke="currentColor"
-          strokeWidth={1}
-          y1={yScale.range()[0]}
-          y2={yScale.range()[1]}
-        />
-        {/* Main axis */}
         <g
           data-name="horizontal-axis"
           transform={`translate(0,${boundedHeight / 2})`}
         >
-          <text
-            fill="currentColor"
-            x={LABEL_PADDING - 20}
-            alignmentBaseline="central"
-          >
+          <text fill="currentColor" x={10} alignmentBaseline="central">
             0
           </text>
           <line
             stroke="currentColor"
             strokeWidth={1}
-            x1={rangeStart + LABEL_PADDING}
-            x2={rangeEnd - LABEL_PADDING}
+            x1={rangeStart}
+            x2={rangeEnd}
           />
           <text
             fill="currentColor"
-            x={rangeEnd - LABEL_PADDING + 10}
+            x={rangeEnd + 10}
             alignmentBaseline="central"
           >
             {maxValue}
@@ -141,5 +133,5 @@ function formatData(
   });
 
   console.log("result", result);
-  return result;
+  return result as Array<[number, number]>;
 }
