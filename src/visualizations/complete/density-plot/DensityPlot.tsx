@@ -1,11 +1,25 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Chart } from "../../types";
 import { CHART_DEFAULTS } from "./constants";
 import { useDimensions } from "../../utils/use-dimensions";
 import { scaleLinear } from "d3-scale";
-import { line, curveBasis, curveMonotoneX } from "d3-shape";
+import {
+  line,
+  curveBasis,
+  curveMonotoneX,
+  curveBasisOpen,
+  curveBasisClosed,
+  curveBumpX,
+  curveBumpY,
+  curveCardinal,
+  curveCatmullRom,
+  curveLinear,
+  curveNatural,
+  curveStep,
+  curveMonotoneY,
+} from "d3-shape";
 import { axisBottom } from "d3-axis";
-import { animated, useSpring, easings } from "react-spring";
+import { animated, useSpring, easings, useSprings } from "react-spring";
 
 export interface DensityPlotProps<Datum> extends Chart<Datum> {
   data: Array<Datum>;
@@ -35,7 +49,8 @@ export function DensityPlot<Datum>({
 
   const LABEL_PADDING = 30;
 
-  // Scales
+  const [hover, setHover] = useState(false);
+
   const xScale = scaleLinear()
     .domain([0, maxValue])
     .range([0 + LABEL_PADDING, boundedWidth - LABEL_PADDING]);
@@ -45,14 +60,22 @@ export function DensityPlot<Datum>({
   // Define the line generator
   const densityLine = line()
     .curve(curveBasis) // This makes the line smooth
+    // TODO: curveBasis makes it look nice but flattens it too much
+    // .curve(curveMonotoneX) is what we currently use but sometimes crashes
+    // the React.spring animation:
+    // Error: The arity of each "output" value must be equal
     .x((d) => xScale(d[0]))
     .y((d) => yScale(d[1]));
 
   const paddingStart: [tick: number, value: number] = [0, 0];
   const paddingEnd: [tick: number, value: number] = [maxValue, 0];
+  const memoizedData = useMemo(
+    () => formatData(data, xScale.ticks(bandwidth)),
+    [data, xScale, bandwidth]
+  );
   const formattedData: Array<[tick: number, value: number]> = [
     paddingStart, // Make sure the line starts at the bottom left corner
-    ...formatData(data, xScale.ticks(bandwidth)),
+    ...memoizedData,
     paddingEnd, // Make sure the line ends at the bottom right corner
   ];
 
@@ -67,6 +90,27 @@ export function DensityPlot<Datum>({
       easing: easings.easeOutBack,
     },
   });
+
+  const circleAnimations = useSprings(
+    memoizedData.length,
+    memoizedData.map((d) => {
+      // const [tick, value] = d;
+
+      return {
+        from: {
+          opacity: 0,
+        },
+        to: {
+          opacity: 1,
+          // transform: `translate(${xScale(tick)}, ${yScale(value)})`,
+        },
+        config: {
+          duration: 2000,
+          easing: easings.easeOutBack,
+        },
+      };
+    })
+  );
 
   return (
     <svg
@@ -114,8 +158,44 @@ export function DensityPlot<Datum>({
           fillOpacity={0.2}
           stroke={colors[0]}
           strokeWidth={2}
+          onMouseEnter={() => setHover(true)}
+          onMouseLeave={() => setHover(false)}
           {...animation}
         />
+        {hover && (
+          <g>
+            {memoizedData.map(([tick, value], i) => {
+              const spring = circleAnimations[i];
+              return value > 0 ? (
+                <animated.g key={i} {...spring}>
+                  <animated.circle
+                    stroke={colors[0]}
+                    fill={colors[0]}
+                    fillOpacity={0.2}
+                    r={10}
+                    cx={xScale(tick)}
+                    cy={yScale(value)}
+                    {...spring}
+
+                  />
+                  <title>
+                    {tick} ({value})
+                  </title>
+                  <text
+                    x={xScale(tick)}
+                    y={yScale(value)}
+                    textAnchor="middle"
+                    alignmentBaseline="central"
+                    fontSize="0.8rem"
+                    // {...spring}
+                  >
+                    {value}
+                  </text>
+                </animated.g>
+              ) : null;
+            })}
+          </g>
+        )}
       </g>
     </svg>
   );
@@ -132,6 +212,7 @@ function formatData(
     return [tick, count];
   });
 
+  // TODO: seems to rerender on hover, memo?
   console.log("result", result);
   return result as Array<[number, number]>;
 }
