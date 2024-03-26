@@ -42,7 +42,6 @@ export function HorizontalAxis<Datum>({
     })
   );
 
-  debugger;
 
   return (
     <g {...rest} textAnchor={"middle"} transform={transform}>

@@ -1,20 +1,28 @@
-import { useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { Chart } from "../../types";
 import { CHART_DEFAULTS } from "./constants";
 import { useDimensions } from "../../utils/use-dimensions";
-import { scaleLinear, scaleOrdinal } from "d3-scale";
-import { HorizontalAxis } from "../bar-chart/Axes/HorizontalAxis";
+import { scaleLinear } from "d3-scale";
+import { line, curveBasis, curveMonotoneX } from "d3-shape";
+import { axisBottom } from "d3-axis";
 
 export interface DensityPlotProps<Datum> extends Chart<Datum> {
   data: Array<Datum>;
+  bandwidth: number;
 }
 
+/*
+ * A density plot shows the distribution of a numeric variable.
+ * In the following examples, a kernel density estimation is always used.
+ * The result can then be plotted using the d3.line() function.
+ */
 export function DensityPlot<Datum>({
   marginTop = CHART_DEFAULTS.marginTop,
   marginRight = CHART_DEFAULTS.marginRight,
   marginBottom = CHART_DEFAULTS.marginBottom,
   marginLeft = CHART_DEFAULTS.marginLeft,
   maxValue = CHART_DEFAULTS.maxValue,
+  bandwidth = 20,
   // transitionDuration = CHART_DEFAULTS.transitionDuration,
   colors = [],
   data = [],
@@ -26,13 +34,36 @@ export function DensityPlot<Datum>({
 
   // Scales
   const xScale = scaleLinear().domain([0, maxValue]).range([0, boundedWidth]);
-  // const colorScale = scaleOrdinal()
-  //   .domain(data.map((d) => d.label))
-  //   .range(colors);
-  // const horizontalAxisTransform = `translate(0, ${boundedHeight})`;
+  console.log(xScale.ticks());
+  const yScale = scaleLinear()
+    .domain([0, Math.max(...data.map((d) => d.goal as number), 1)])
+    .range([boundedHeight / 2, 0]);
 
   const [rangeStart, rangeEnd] = xScale.range();
 
+  useEffect(() => {
+    console.log("bandwidth",bandwidth);
+    console.log('data', data);
+  }, [bandwidth, data]);
+
+  // Define the line generator
+  const densityLine = line()
+    .curve(curveMonotoneX) // This makes the line smooth
+    .x((d) => xScale(d[0]))
+    .y((d) => yScale(d[1]));
+
+  console.log("x", xScale.ticks());
+  console.log("y", yScale.ticks());
+  // const mockData: [number, number][] = [[0, 0], [5, 2]];
+
+  const mockData: [number, number][] = data
+    .map((d) => [d.value as number, d.goal as number])
+    .sort((a, b) => a[0] - b[0]);
+
+  console.log(mockData);
+
+  // console.log(densityLine(data.map((d) => [d.goal, d.value]));
+  console.log(densityLine(mockData));
   const LABEL_PADDING = 30;
   return (
     <svg
@@ -53,16 +84,16 @@ export function DensityPlot<Datum>({
         transform={`translate(${marginLeft}, ${marginTop})`}
         alignmentBaseline="middle"
       >
-        <rect width={boundedWidth} height={boundedHeight} fill="red" />
-        {/* Main axis */}
-        {/* <HorizontalAxis
-          data-name="discrete-axis"
-          tickScale={xScale}
-          items={xScale.ticks()}
-          range={xScale.range()}
-          gridHeight={boundedHeight}
-        /> */}
+        {/* <rect width={boundedWidth} height={boundedHeight} fill="red" /> */}
 
+        {/* Mock y axis */}
+        <line
+          stroke="currentColor"
+          strokeWidth={1}
+          y1={yScale.range()[0]}
+          y2={yScale.range()[1]}
+        />
+        {/* Main axis */}
         <g
           data-name="horizontal-axis"
           transform={`translate(0,${boundedHeight / 2})`}
@@ -85,29 +116,19 @@ export function DensityPlot<Datum>({
             x={rangeEnd - LABEL_PADDING + 10}
             alignmentBaseline="central"
           >
-            { maxValue }
+            {maxValue}
           </text>
         </g>
-
-        {/* {data.map((d, i) => {
-          return (
-            <g key={i}>
-              <animated.circle
-                r={13}
-                cx={xScale(d.value)}
-                cy={yScale(d.goal)}
-                stroke={colorScale(d.label)}
-                fill={colorScale(d.label)}
-                opacity={1}
-                strokeWidth={1}
-                {...springs[i]}
-              />
-              <title>
-                {d.label} ({d.value})
-              </title>
-            </g>
-          );
-        })} */}
+        {/* TODO: Add density plot here */}
+        {/* Density plot line */}
+        <path
+          // d={densityLine(data.map(d => [d.goal, d.value]))} // Cast to the expected tuple type
+          d={densityLine(mockData) || undefined}
+          fill="none"
+          fillOpacity={0.2}
+          stroke="steelblue"
+          strokeWidth={2}
+        />
       </g>
     </svg>
   );
