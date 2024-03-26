@@ -42,6 +42,8 @@ export function HorizontalAxis<Datum>({
     })
   );
 
+  debugger;
+
   return (
     <g {...rest} textAnchor={"middle"} transform={transform}>
       <line stroke="currentColor" strokeWidth={1} x1={lineStart} x2={lineEnd} />

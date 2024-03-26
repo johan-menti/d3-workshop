@@ -3,9 +3,7 @@ import { Chart } from "../../types";
 import { CHART_DEFAULTS } from "./constants";
 import { useDimensions } from "../../utils/use-dimensions";
 import { scaleLinear, scaleOrdinal } from "d3-scale";
-import { VerticalAxis } from "../bar-chart/Axes/VerticalAxis";
 import { HorizontalAxis } from "../bar-chart/Axes/HorizontalAxis";
-import { animated, useSprings } from "react-spring";
 
 export interface DensityPlotProps<Datum> extends Chart<Datum> {
   data: Array<Datum>;
@@ -17,7 +15,7 @@ export function DensityPlot<Datum>({
   marginBottom = CHART_DEFAULTS.marginBottom,
   marginLeft = CHART_DEFAULTS.marginLeft,
   maxValue = CHART_DEFAULTS.maxValue,
-  transitionDuration = CHART_DEFAULTS.transitionDuration,
+  // transitionDuration = CHART_DEFAULTS.transitionDuration,
   colors = [],
   data = [],
 }: DensityPlotProps<Datum>) {
@@ -27,31 +25,15 @@ export function DensityPlot<Datum>({
   const boundedHeight = rootHeight - marginTop - marginBottom;
 
   // Scales
-  const yScale = scaleLinear().domain([0, maxValue]).range([boundedHeight, 0]);
   const xScale = scaleLinear().domain([0, maxValue]).range([0, boundedWidth]);
-  const colorScale = scaleOrdinal()
-    .domain(data.map((d) => d.label))
-    .range(colors);
-  const horizontalAxisTransform = `translate(0, ${boundedHeight})`;
+  // const colorScale = scaleOrdinal()
+  //   .domain(data.map((d) => d.label))
+  //   .range(colors);
+  // const horizontalAxisTransform = `translate(0, ${boundedHeight})`;
 
-  const springs = useSprings(
-    data.length,
-    data.map(() => {
-      return {
-        from: {
-          fillOpacity: 0,
-        },
-        to: {
-          fillOpacity: 0.5,
-        },
-        config: {
-          duration: transitionDuration,
-        },
-      };
-    })
-  );
+  const [rangeStart, rangeEnd] = xScale.range();
 
-
+  const LABEL_PADDING = 30;
   return (
     <svg
       ref={ref}
@@ -69,26 +51,45 @@ export function DensityPlot<Datum>({
         width={boundedWidth}
         height={boundedHeight}
         transform={`translate(${marginLeft}, ${marginTop})`}
+        alignmentBaseline="middle"
       >
-        <VerticalAxis
-          data-name="linear-axis"
-          tickScale={yScale}
-          items={yScale.ticks()}
-          range={yScale.range()}
-          gridWidth={boundedWidth}
-        />
-
-        <HorizontalAxis
+        <rect width={boundedWidth} height={boundedHeight} fill="red" />
+        {/* Main axis */}
+        {/* <HorizontalAxis
           data-name="discrete-axis"
           tickScale={xScale}
-          transform={horizontalAxisTransform}
           items={xScale.ticks()}
           range={xScale.range()}
           gridHeight={boundedHeight}
-        />
+        /> */}
 
-        {/* Circles */}
-        {data.map((d, i) => {
+        <g
+          data-name="horizontal-axis"
+          transform={`translate(0,${boundedHeight / 2})`}
+        >
+          <text
+            fill="currentColor"
+            x={LABEL_PADDING - 20}
+            alignmentBaseline="central"
+          >
+            0
+          </text>
+          <line
+            stroke="currentColor"
+            strokeWidth={1}
+            x1={rangeStart + LABEL_PADDING}
+            x2={rangeEnd - LABEL_PADDING}
+          />
+          <text
+            fill="currentColor"
+            x={rangeEnd - LABEL_PADDING + 10}
+            alignmentBaseline="central"
+          >
+            { maxValue }
+          </text>
+        </g>
+
+        {/* {data.map((d, i) => {
           return (
             <g key={i}>
               <animated.circle
@@ -106,7 +107,7 @@ export function DensityPlot<Datum>({
               </title>
             </g>
           );
-        })}
+        })} */}
       </g>
     </svg>
   );
