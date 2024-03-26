@@ -48,13 +48,20 @@ export function DensityPlot<Datum>({
   const boundedHeight = rootHeight - marginTop - marginBottom;
 
   const LABEL_PADDING = 30;
+  const GRADIENT_ID = "graph-gradient";
 
   const [hover, setHover] = useState(false);
+  const [showCorrectArea, setShowCorrectArea] = useState(false);
+
+  const correctRange = [3, 4] as const;
+
+  // const correctScale =
 
   const xScale = scaleLinear()
     .domain([0, maxValue])
     .range([0 + LABEL_PADDING, boundedWidth - LABEL_PADDING]);
 
+  // const
   const [rangeStart, rangeEnd] = xScale.range();
 
   // Define the line generator
@@ -66,6 +73,11 @@ export function DensityPlot<Datum>({
     // Error: The arity of each "output" value must be equal
     .x((d) => xScale(d[0]))
     .y((d) => yScale(d[1]));
+
+  // const densityLineCorrect = line()
+  //   .curve(curveBasis)
+  //   .x((d) => xScale(d[0]))
+  //   .y((d) => yScale(d[1]));
 
   const paddingStart: [tick: number, value: number] = [0, 0];
   const paddingEnd: [tick: number, value: number] = [maxValue, 0];
@@ -91,6 +103,7 @@ export function DensityPlot<Datum>({
     },
   });
 
+  // TODO: fix circle animations
   const circleAnimations = useSprings(
     memoizedData.length,
     memoizedData.map((d) => {
@@ -131,6 +144,20 @@ export function DensityPlot<Datum>({
         transform={`translate(${marginLeft}, ${marginTop})`}
         alignmentBaseline="middle"
       >
+        <defs>
+          <linearGradient id="graph-gradient">
+            <stop offset="0%" stop-color={colors[0]}></stop>
+            <stop offset="30%" stop-color={colors[0]}></stop>
+            {showCorrectArea && (
+              <stop offset="30%" stop-color="lightgreen"></stop>
+            )}
+            {showCorrectArea && (
+              <stop offset="60%" stop-color="lightgreen"></stop>
+            )}
+            <stop offset="60%" stop-color={colors[0]}></stop>
+            <stop offset="100%" stop-color={colors[0]}></stop>
+          </linearGradient>
+        </defs>{" "}
         <g
           data-name="horizontal-axis"
           transform={`translate(0,${boundedHeight / 2})`}
@@ -154,14 +181,25 @@ export function DensityPlot<Datum>({
         </g>
         {/* Density plot line */}
         <animated.path
-          fill={colors[0]}
+          fill={`url(#${GRADIENT_ID})`}
           fillOpacity={0.2}
-          stroke={colors[0]}
+          stroke={`url(#${GRADIENT_ID})`}
           strokeWidth={2}
           onMouseEnter={() => setHover(true)}
           onMouseLeave={() => setHover(false)}
+          onClick={() => setShowCorrectArea(!showCorrectArea)}
           {...animation}
         />
+        {/* <path
+          d={
+            densityLine(getCorrectArea(formattedData, correctRange)) ||
+            undefined
+          }
+          fill={"lightgreen"}
+          fillOpacity={0.8}
+          stroke={"lightgreen"}
+          strokeWidth={3}
+        ></path> */}
         {hover && (
           <g>
             {memoizedData.map(([tick, value], i) => {
@@ -176,7 +214,6 @@ export function DensityPlot<Datum>({
                     cx={xScale(tick)}
                     cy={yScale(value)}
                     {...spring}
-
                   />
                   <title>
                     {tick} ({value})
@@ -215,4 +252,13 @@ function formatData(
   // TODO: seems to rerender on hover, memo?
   console.log("result", result);
   return result as Array<[number, number]>;
+}
+
+function getCorrectArea(
+  data: ReturnType<typeof formatData>,
+  correctRange: Readonly<[start: number, end: number]>
+): ReturnType<typeof formatData> {
+  return data.filter(
+    ([tick]) => tick >= correctRange[0] && tick <= correctRange[1]
+  );
 }
