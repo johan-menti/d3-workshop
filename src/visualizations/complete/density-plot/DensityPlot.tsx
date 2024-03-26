@@ -5,6 +5,7 @@ import { useDimensions } from "../../utils/use-dimensions";
 import { scaleLinear } from "d3-scale";
 import { line, curveBasis, curveMonotoneX } from "d3-shape";
 import { axisBottom } from "d3-axis";
+import { animated, useSpring, easings } from "react-spring";
 
 export interface DensityPlotProps<Datum> extends Chart<Datum> {
   data: Array<Datum>;
@@ -22,8 +23,8 @@ export function DensityPlot<Datum>({
   marginBottom = CHART_DEFAULTS.marginBottom,
   marginLeft = CHART_DEFAULTS.marginLeft,
   maxValue = CHART_DEFAULTS.maxValue,
-  bandwidth = 20,
-  // transitionDuration = CHART_DEFAULTS.transitionDuration,
+  bandwidth = 10,
+  transitionDuration = CHART_DEFAULTS.transitionDuration,
   colors = [],
   data = [],
 }: DensityPlotProps<Datum>) {
@@ -34,36 +35,34 @@ export function DensityPlot<Datum>({
 
   // Scales
   const xScale = scaleLinear().domain([0, maxValue]).range([0, boundedWidth]);
-  console.log(xScale.ticks());
-  const yScale = scaleLinear()
-    .domain([0, Math.max(...data.map((d) => d.goal as number), 1)])
-    .range([boundedHeight / 2, 0]);
 
   const [rangeStart, rangeEnd] = xScale.range();
 
-  useEffect(() => {
-    console.log("bandwidth",bandwidth);
-    console.log('data', data);
-  }, [bandwidth, data]);
-
   // Define the line generator
   const densityLine = line()
-    .curve(curveMonotoneX) // This makes the line smooth
+    .curve(curveBasis) // This makes the line smooth
     .x((d) => xScale(d[0]))
     .y((d) => yScale(d[1]));
 
-  console.log("x", xScale.ticks());
-  console.log("y", yScale.ticks());
-  // const mockData: [number, number][] = [[0, 0], [5, 2]];
+  const paddingStart: [tick: number, value: number] = [0, 0];
+  const paddingEnd: [tick: number, value: number] = [maxValue, 0];
+  const formattedData: Array<[tick: number, value: number]> = [
+    paddingStart, // Make sure the line starts at the bottom left corner
+    ...formatData(data, xScale.ticks(bandwidth)),
+    paddingEnd, // Make sure the line ends at the bottom right corner
+  ];
 
-  const mockData: [number, number][] = data
-    .map((d) => [d.value as number, d.goal as number])
-    .sort((a, b) => a[0] - b[0]);
+  const yScale = scaleLinear()
+    .domain([0, Math.max(...formattedData.map((d) => d[1]), 1)])
+    .range([boundedHeight / 2, 0]);
 
-  console.log(mockData);
-
-  // console.log(densityLine(data.map((d) => [d.goal, d.value]));
-  console.log(densityLine(mockData));
+  const animation = useSpring({
+    to: { d: densityLine(formattedData) || undefined },
+    config: {
+      duration: transitionDuration,
+      easing: easings.easeOutBounce,
+    },
+  });
   const LABEL_PADDING = 30;
   return (
     <svg
@@ -84,8 +83,6 @@ export function DensityPlot<Datum>({
         transform={`translate(${marginLeft}, ${marginTop})`}
         alignmentBaseline="middle"
       >
-        {/* <rect width={boundedWidth} height={boundedHeight} fill="red" /> */}
-
         {/* Mock y axis */}
         <line
           stroke="currentColor"
@@ -119,17 +116,30 @@ export function DensityPlot<Datum>({
             {maxValue}
           </text>
         </g>
-        {/* TODO: Add density plot here */}
         {/* Density plot line */}
-        <path
-          // d={densityLine(data.map(d => [d.goal, d.value]))} // Cast to the expected tuple type
-          d={densityLine(mockData) || undefined}
-          fill="none"
+        <animated.path
+          fill={colors[0]}
           fillOpacity={0.2}
-          stroke="steelblue"
+          stroke={colors[0]}
           strokeWidth={2}
+          {...animation}
         />
       </g>
     </svg>
   );
+}
+
+function formatData(
+  data: Array<any>,
+  ticks: number[]
+): Array<[number, number]> {
+  // console.log("formatticks", ticks);
+  const result = ticks.map((tick) => {
+    const values = data.map((d) => d.value as number);
+    const count = values.filter((value) => value === tick).length;
+    return [tick, count];
+  });
+
+  console.log("result", result);
+  return result;
 }
