@@ -53,9 +53,7 @@ export function DensityPlot<Datum>({
   const [hover, setHover] = useState(false);
   const [showCorrectArea, setShowCorrectArea] = useState(false);
 
-  const correctRange = [3, 4] as const;
-
-  // const correctScale =
+  const correctRange = [4, 20] as const;
 
   const xScale = scaleLinear()
     .domain([0, maxValue])
@@ -66,7 +64,8 @@ export function DensityPlot<Datum>({
 
   // Define the line generator
   const densityLine = line()
-    .curve(curveBasis) // This makes the line smooth
+    // TODO: add curve as Storybook prop
+    .curve(curveBumpX) // This makes the line smooth
     // TODO: curveBasis makes it look nice but flattens it too much
     // .curve(curveMonotoneX) is what we currently use but sometimes crashes
     // the React.spring animation:
@@ -125,6 +124,23 @@ export function DensityPlot<Datum>({
     })
   );
 
+  const verticalLine = line()
+    .x((d) => d[0])
+    .y((d) => yScale(d[1]));
+
+  const correctAreaStartX = xScale(correctRange[0]);
+  const correctAreaEndX = xScale(correctRange[1]);
+  console.log("correctAreaStartX", correctAreaStartX);
+
+  console.log("rangeStart", rangeStart);
+  console.log("rangeEnd", rangeEnd);
+
+  const startPercent = (correctAreaStartX - LABEL_PADDING + 3) / rangeEnd;
+  const endPercent = (correctAreaEndX - LABEL_PADDING + 3 * 6) / rangeEnd;
+  console.log("startPercent", startPercent);
+  console.log("endPercent", endPercent);
+
+  // const labelOffset = xScale(LABEL_PADDING)
   return (
     <svg
       ref={ref}
@@ -146,18 +162,18 @@ export function DensityPlot<Datum>({
       >
         <defs>
           <linearGradient id="graph-gradient">
-            <stop offset="0%" stop-color={colors[0]}></stop>
-            <stop offset="30%" stop-color={colors[0]}></stop>
+            <stop offset={0} stop-color={colors[0]}></stop>
+            <stop offset={startPercent} stop-color={colors[0]}></stop>
             {showCorrectArea && (
-              <stop offset="30%" stop-color="lightgreen"></stop>
+              <>
+                <stop offset={startPercent} stop-color="lightgreen"></stop>
+                <stop offset={endPercent} stop-color="lightgreen"></stop>
+              </>
             )}
-            {showCorrectArea && (
-              <stop offset="60%" stop-color="lightgreen"></stop>
-            )}
-            <stop offset="60%" stop-color={colors[0]}></stop>
-            <stop offset="100%" stop-color={colors[0]}></stop>
+            <stop offset={endPercent} stop-color={colors[0]}></stop>
+            <stop offset={1} stop-color={colors[0]}></stop>
           </linearGradient>
-        </defs>{" "}
+        </defs>
         <g
           data-name="horizontal-axis"
           transform={`translate(0,${boundedHeight / 2})`}
@@ -215,6 +231,7 @@ export function DensityPlot<Datum>({
                     cy={yScale(value)}
                     {...spring}
                   />
+                  {/* TODO: remove title */}
                   <title>
                     {tick} ({value})
                   </title>
@@ -232,6 +249,32 @@ export function DensityPlot<Datum>({
               ) : null;
             })}
           </g>
+        )}
+        {/* TODO: add correctArea icon+label */}
+        {showCorrectArea && (
+          <>
+            <path
+              d={
+                verticalLine([
+                  [correctAreaStartX, 0],
+                  [
+                    correctAreaStartX,
+                    findYForX(correctRange[0], formattedData),
+                  ],
+                ]) || undefined
+              }
+              stroke="lightgreen"
+            />
+            <path
+              d={
+                verticalLine([
+                  [correctAreaEndX, 0],
+                  [correctAreaEndX, findYForX(correctRange[1], formattedData)],
+                ]) || undefined
+              }
+              stroke="lightgreen"
+            />
+          </>
         )}
       </g>
     </svg>
@@ -254,11 +297,22 @@ function formatData(
   return result as Array<[number, number]>;
 }
 
-function getCorrectArea(
-  data: ReturnType<typeof formatData>,
-  correctRange: Readonly<[start: number, end: number]>
-): ReturnType<typeof formatData> {
-  return data.filter(
-    ([tick]) => tick >= correctRange[0] && tick <= correctRange[1]
-  );
+// function getCorrectArea(
+//   data: ReturnType<typeof formatData>,
+//   correctRange: Readonly<[start: number, end: number]>
+// ): ReturnType<typeof formatData> {
+//   return data.filter(
+//     ([tick]) => tick >= correctRange[0] && tick <= correctRange[1]
+//   );
+// }
+
+function findYForX(
+  x: number,
+  data: Array<[number, number]>
+): number | undefined {
+  // console.log("data", data);
+  // console.log("x", x);
+  const point = data.find(([xPoint]) => xPoint === x);
+  // console.log("point", point);
+  return point ? point[1] : undefined;
 }
